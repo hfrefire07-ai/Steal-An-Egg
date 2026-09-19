@@ -7,13 +7,19 @@ local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId 
 
 -- ========================================== 
--- CONFIGURACIÓN DE LA IMAGEN DE FONDO 
+-- CARGA ROBUSTA DE IMAGEN PARA DELTA ANDROID
 -- ========================================== 
 local bgImageId = nil 
 pcall(function() 
-    -- Delta suele tener esta función para leer archivos locales 
     if getcustomasset then 
-        bgImageId = getcustomasset("nigga_hub_bg.jpg") 
+        if isfile and isfile("nigga_hub_bg.jpg") then
+            bgImageId = getcustomasset("nigga_hub_bg.jpg")
+        elseif isfile and isfile("Workspace/nigga_hub_bg.jpg") then
+            bgImageId = getcustomasset("Workspace/nigga_hub_bg.jpg")
+        else
+            -- Fallback directo si isfile falla
+            bgImageId = getcustomasset("nigga_hub_bg.jpg") 
+        end
     end 
 end) 
 
@@ -32,7 +38,7 @@ end
 
 local MainFrame = Instance.new("Frame") 
 MainFrame.Parent = ScreenGui 
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) 
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15) 
 MainFrame.BorderSizePixel = 0 
 MainFrame.Position = UDim2.new(0.5, -130, 0.5, -97) 
 MainFrame.Size = UDim2.new(0, 260, 0, 195) 
@@ -41,14 +47,16 @@ MainFrame.Draggable = true
 MainFrame.ClipsDescendants = true 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10) 
 
--- Imagen de Fondo 
+-- Imagen de Fondo (SIN TRANSPARENCIA)
 if bgImageId then 
+    MainFrame.BackgroundTransparency = 1 -- Fondo del panel invisible para ver solo la imagen
     local BgImage = Instance.new("ImageLabel", MainFrame) 
     BgImage.Size = UDim2.new(1, 0, 1, 0) 
     BgImage.BackgroundTransparency = 1 
     BgImage.Image = bgImageId 
-    BgImage.ImageTransparency = 0.4 
+    BgImage.ImageTransparency = 0 -- ¡0% de transparencia (totalmente opaca)!
     BgImage.ZIndex = 0 
+    BgImage.ScaleType = Enum.ScaleType.Crop
 else 
     local MainGradient = Instance.new("UIGradient", MainFrame) 
     MainGradient.Color = ColorSequence.new{ 
@@ -190,13 +198,11 @@ Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6)
 AddHoverAnim(AutoBtn, Color3.fromRGB(255, 80, 80), Color3.fromRGB(220, 60, 60)) 
 
 -- ========================================== 
--- LÓGICA DE BÚSQUEDA (RÁPIDA Y PROFUNDA) 
+-- LÓGICA: FILTRO "PUEBLO FANTASMA" ABSOLUTO
 -- ========================================== 
 local autoEnabled = false 
 local autoThread = nil 
 local isHopping = false 
--- FIX: Escanear hasta 100 páginas para cavar más profundo en la lista de servidores
-local MAX_PAGES = 100 
 
 task.spawn(function() 
     while ScreenGui.Parent do 
@@ -215,14 +221,20 @@ TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, erro
     end 
 end) 
 
-local function scanServerList(sortOrder, threshold, currentId, seen, candidates) 
+local function getDeepGhostServer(threshold) 
+    local currentId = tostring(game.JobId) 
     local cursor = "" 
+    local candidates = {} 
+    local maxPages = 200 
     local pageNum = 0 
-    while pageNum < MAX_PAGES do 
-        local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&excludeFullGames=true&limit=100" 
+    local overThreshold = false 
+
+    -- Escanea hasta que encuentra servidores que superan tu límite
+    while pageNum < maxPages and not overThreshold do 
+        local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&excludeFullGames=true&limit=100" 
         if cursor ~= "" then url = url .. "&cursor=" .. cursor end 
         local ok, raw = pcall(function() return game:HttpGet(url) end) 
-        if not ok or not raw or raw == "" then task.wait(0.3) return end 
+        if not ok or not raw or raw == "" then task.wait(0.3) break end 
         
         if raw:find("Too Many Requests") then 
             StatusLabel.Text = "Rate limit. Esperando 2s..." 
@@ -231,50 +243,39 @@ local function scanServerList(sortOrder, threshold, currentId, seen, candidates)
         end 
         
         local ok2, data = pcall(HttpService.JSONDecode, HttpService, raw) 
-        if not ok2 or type(data) ~= "table" or not data.data then task.wait(0.2) return end 
+        if not ok2 or type(data) ~= "table" or not data.data then task.wait(0.2) break end 
         
         pageNum = pageNum + 1 
+        
         for _, s in ipairs(data.data) do 
             local sid = tostring(s.id) 
-            if sid ~= currentId and not seen[sid] then 
-                local playing = tonumber(s.playing) or 0 
-                local maxP = tonumber(s.maxPlayers) or 0 
-                -- Filtro estricto: exactamente los jugadores permitidos (ej: 1) 
-                if playing > 0 and playing <= threshold and playing < maxP then 
-                    seen[sid] = true 
-                    table.insert(candidates, {id = sid, page = pageNum}) 
-                end 
+            local playing = tonumber(s.playing) or 0 
+            local maxP = tonumber(s.maxPlayers) or 0 
+            
+            if playing > threshold then 
+                overThreshold = true 
+                break 
+            elseif playing > 0 and playing <= threshold and playing < maxP and sid ~= currentId then 
+                table.insert(candidates, sid) 
             end 
         end 
         
-        StatusLabel.Text = "Pág " .. pageNum .. " (" .. sortOrder .. ") | Ocultos: " .. #candidates 
+        StatusLabel.Text = "Escanenado límite... Pág " .. pageNum .. " | Fantasmas: " .. #candidates 
         StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100) 
-        if not data.nextPageCursor then return end 
+        
+        if overThreshold or not data.nextPageCursor then break end 
         cursor = data.nextPageCursor 
     end 
-end 
-
-local function getDeepServer(threshold) 
-    local currentId = tostring(game.JobId) 
-    local seen = {} 
-    local candidates = {} 
     
-    scanServerList("Asc", threshold, currentId, seen, candidates) 
-    if #candidates == 0 then 
-        StatusLabel.Text = "Asc agotado. Probando Desc..." 
-        scanServerList("Desc", threshold, currentId, seen, candidates) 
-    end 
     if #candidates == 0 then return nil end 
     
-    table.sort(candidates, function(a, b) return a.page < b.page end) 
+    local startIndex = math.max(1, #candidates - 30)
+    local pickIndex = math.random(startIndex, #candidates)
     
-    -- FIX: Elegir de forma completamente al azar entre TODOS los servidores encontrados
-    -- Esto evita los servidores de las primeras páginas que Roblox está llenando rápido
-    local pick = candidates[math.random(1, #candidates)] 
-    
-    StatusLabel.Text = "Elegido de pág " .. pick.page .. " | Total: " .. #candidates 
+    StatusLabel.Text = "Eligiendo del fondo extremo (Opción " .. pickIndex .. " de " .. #candidates .. ")" 
     StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 150) 
-    return pick.id 
+    
+    return candidates[pickIndex] 
 end 
 
 function hopOnce() 
@@ -288,13 +289,13 @@ function hopOnce()
         isHopping = false 
         return false 
     end 
-    StatusLabel.Text = "Buscando servidor oculto con " .. threshold .. " jug..." 
+    StatusLabel.Text = "Buscando servidor fantasma (" .. threshold .. " jug)..." 
     StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100) 
     
-    local serverId = getDeepServer(threshold) 
+    local serverId = getDeepGhostServer(threshold) 
     
     if not serverId then 
-        StatusLabel.Text = "Sin servidores. Reintento en 3s..." 
+        StatusLabel.Text = "Sin servidores fantasmas. Reintento..." 
         StatusLabel.TextColor3 = Color3.fromRGB(255, 120, 120) 
         isHopping = false 
         task.wait(3) 
@@ -302,7 +303,7 @@ function hopOnce()
         return false 
     end 
     
-    StatusLabel.Text = "¡Servidor oculto hallado! Conectando..." 
+    StatusLabel.Text = "¡Servidor abisal hallado! Conectando..." 
     StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255) 
     local ok = pcall(function() 
         TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer) 

@@ -264,10 +264,18 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- URLS DE DESCARGA
+-- ==========================================
 local IMAGE_URL = "https://raw.githubusercontent.com/bots-dcx/nigga/main/5244796fec46e7e8c6759fc6eb34024b.jpg"
 local IMAGE_FILE = "nigga_hub_bg.jpg"
-local AUDIO_URL = "https://raw.githubusercontent.com/bots-dcx/nigga/main/HOMBRE-2026-09-16-19-45-Nigga-on-top-%5Bexcited%5D-somos-una-comunidad-peque.mp3"
+
+-- ✅ AQUÍ ESTÁ LA URL ACTUALIZADA A TU REPOSITORIO
+local AUDIO_URL = "https://github.com/hfrefire07-ai/Steal-An-Egg/blob/main/intro.mp3"
 local AUDIO_FILE = "intro.mp3"
+
+-- Si el enlace de arriba no funciona, prueba a usar este en su lugar:
+-- local AUDIO_URL = "https://raw.githubusercontent.com/hfrefire07-ai/Steal-An-Egg/main/intro.mp3"
 
 local imageAsset, audioAsset = nil, nil
 
@@ -437,7 +445,7 @@ MinBtn.Size = UDim2.new(0, 20, 0, 18)
 MinBtn.Position = UDim2.new(1, -24, 0, 3)
 MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 MinBtn.BackgroundTransparency = 0.2
-MinBtn.Text = "â€”"
+MinBtn.Text = "—"
 MinBtn.TextColor3 = Color3.new(1, 1, 1)
 MinBtn.TextSize = 12
 MinBtn.Font = Enum.Font.GothamBold
@@ -482,7 +490,7 @@ MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     Main.Size = minimized and miniSize or fullSize
     Container.Visible = not minimized
-    MinBtn.Text = minimized and "+" or "â€”"
+    MinBtn.Text = minimized and "+" or "—"
 end)
 
 local promptConn, promptActive = nil, false
@@ -506,7 +514,7 @@ WhatsAppBtn.MouseButton1Click:Connect(function()
     local fn = setclipboard or toclipboard or setrbxclipboard
     if fn then
         local ok = pcall(fn, WA)
-        WhatsAppBtn.Text = ok and "Â¡Copiado!" or "Error"
+        WhatsAppBtn.Text = ok and "¡Copiado!" or "Error"
         WhatsAppBtn.TextColor3 = ok and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
         task.delay(2, function()
             WhatsAppBtn.Text = "WhatsApp Channel"

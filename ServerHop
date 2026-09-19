@@ -1,0 +1,363 @@
+local Players = game:GetService("Players") 
+local TeleportService = game:GetService("TeleportService") 
+local HttpService = game:GetService("HttpService") 
+local RunService = game:GetService("RunService") 
+local TweenService = game:GetService("TweenService") 
+local LocalPlayer = Players.LocalPlayer 
+local PlaceId = game.PlaceId 
+
+-- ========================================== 
+-- CONFIGURACIÓN DE LA IMAGEN DE FONDO 
+-- ========================================== 
+local bgImageId = nil 
+pcall(function() 
+    -- Delta suele tener esta función para leer archivos locales 
+    if getcustomasset then 
+        bgImageId = getcustomasset("nigga_hub_bg.jpg") 
+    end 
+end) 
+
+local ScreenGui = Instance.new("ScreenGui") 
+ScreenGui.Name = "nigga server hopper" 
+ScreenGui.ResetOnSpawn = false 
+
+if syn and syn.protect_gui then 
+    syn.protect_gui(ScreenGui) 
+    ScreenGui.Parent = game.CoreGui 
+elseif gethui then 
+    ScreenGui.Parent = gethui() 
+else 
+    ScreenGui.Parent = game.CoreGui 
+end 
+
+local MainFrame = Instance.new("Frame") 
+MainFrame.Parent = ScreenGui 
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) 
+MainFrame.BorderSizePixel = 0 
+MainFrame.Position = UDim2.new(0.5, -130, 0.5, -97) 
+MainFrame.Size = UDim2.new(0, 260, 0, 195) 
+MainFrame.Active = true 
+MainFrame.Draggable = true 
+MainFrame.ClipsDescendants = true 
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10) 
+
+-- Imagen de Fondo 
+if bgImageId then 
+    local BgImage = Instance.new("ImageLabel", MainFrame) 
+    BgImage.Size = UDim2.new(1, 0, 1, 0) 
+    BgImage.BackgroundTransparency = 1 
+    BgImage.Image = bgImageId 
+    BgImage.ImageTransparency = 0.4 
+    BgImage.ZIndex = 0 
+else 
+    local MainGradient = Instance.new("UIGradient", MainFrame) 
+    MainGradient.Color = ColorSequence.new{ 
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)), 
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15)) 
+    } 
+    MainGradient.Rotation = 45 
+end 
+
+local ClickSound = Instance.new("Sound") 
+ClickSound.SoundId = "rbxassetid://256986421" 
+ClickSound.Volume = 0.5 
+ClickSound.Parent = MainFrame 
+
+local Stroke = Instance.new("UIStroke", MainFrame) 
+Stroke.Thickness = 1.5 
+task.spawn(function() 
+    local hue = 0 
+    while RunService.Heartbeat:Wait() do 
+        hue = hue + 0.003 
+        if hue >= 1 then hue = 0 end 
+        Stroke.Color = Color3.fromHSV(hue, 0.6, 1) 
+    end 
+end) 
+
+local Title = Instance.new("TextLabel", MainFrame) 
+Title.Size = UDim2.new(1, 0, 0, 32) 
+Title.BackgroundTransparency = 1 
+Title.Font = Enum.Font.GothamBold 
+Title.Text = " nigga server hopper" 
+Title.TextColor3 = Color3.fromRGB(255, 255, 255) 
+Title.TextSize = 13 
+Title.TextXAlignment = Enum.TextXAlignment.Left 
+Title.ZIndex = 2 
+local TitlePad = Instance.new("UIPadding", Title) 
+TitlePad.PaddingLeft = UDim.new(0, 12) 
+
+local function AddHoverAnim(button, hoverColor, defaultColor) 
+    local tInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) 
+    button.MouseEnter:Connect(function() 
+        TweenService:Create(button, tInfo, {BackgroundColor3 = hoverColor}):Play() 
+    end) 
+    button.MouseLeave:Connect(function() 
+        TweenService:Create(button, tInfo, {BackgroundColor3 = defaultColor}):Play() 
+    end) 
+end 
+
+local CloseBtn = Instance.new("TextButton", MainFrame) 
+CloseBtn.BackgroundTransparency = 1 
+CloseBtn.Position = UDim2.new(1, -30, 0, 6) 
+CloseBtn.Size = UDim2.new(0, 20, 0, 20) 
+CloseBtn.Font = Enum.Font.GothamBold 
+CloseBtn.Text = "✕" 
+CloseBtn.TextColor3 = Color3.fromRGB(255, 70, 70) 
+CloseBtn.TextSize = 13 
+CloseBtn.ZIndex = 2 
+CloseBtn.MouseButton1Click:Connect(function() 
+    ClickSound:Play() 
+    ScreenGui:Destroy() 
+end) 
+
+local MinBtn = Instance.new("TextButton", MainFrame) 
+MinBtn.BackgroundTransparency = 1 
+MinBtn.Position = UDim2.new(1, -55, 0, 6) 
+MinBtn.Size = UDim2.new(0, 20, 0, 20) 
+MinBtn.Font = Enum.Font.GothamBold 
+MinBtn.Text = "—" 
+MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200) 
+MinBtn.TextSize = 13 
+MinBtn.ZIndex = 2 
+local minimized = false 
+MinBtn.MouseButton1Click:Connect(function() 
+    ClickSound:Play() 
+    minimized = not minimized 
+    local targetSize = minimized and UDim2.new(0, 260, 0, 32) or UDim2.new(0, 260, 0, 195) 
+    TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {Size = targetSize}):Play() 
+end) 
+
+local NowLabel = Instance.new("TextLabel", MainFrame) 
+NowLabel.Position = UDim2.new(0, 12, 0, 40) 
+NowLabel.Size = UDim2.new(1, -24, 0, 20) 
+NowLabel.BackgroundTransparency = 1 
+NowLabel.Font = Enum.Font.GothamSemibold 
+NowLabel.TextXAlignment = Enum.TextXAlignment.Left 
+NowLabel.TextColor3 = Color3.fromRGB(150, 255, 150) 
+NowLabel.TextSize = 12 
+NowLabel.ZIndex = 2 
+
+local StatusLabel = Instance.new("TextLabel", MainFrame) 
+StatusLabel.Position = UDim2.new(0, 12, 0, 62) 
+StatusLabel.Size = UDim2.new(1, -24, 0, 30) 
+StatusLabel.BackgroundTransparency = 1 
+StatusLabel.Font = Enum.Font.Gotham 
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left 
+StatusLabel.TextYAlignment = Enum.TextYAlignment.Top 
+StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 200) 
+StatusLabel.TextSize = 11 
+StatusLabel.TextWrapped = true 
+StatusLabel.ZIndex = 2 
+
+local MaxBox = Instance.new("TextBox", MainFrame) 
+MaxBox.Position = UDim2.new(0, 12, 0, 95) 
+MaxBox.Size = UDim2.new(1, -24, 0, 32) 
+MaxBox.BackgroundColor3 = Color3.fromRGB(30, 30, 45) 
+MaxBox.BorderSizePixel = 0 
+MaxBox.Font = Enum.Font.GothamBold 
+MaxBox.PlaceholderText = "Max Jugadores (Ej: 1)" 
+MaxBox.Text = "1" 
+MaxBox.TextColor3 = Color3.fromRGB(255, 255, 255) 
+MaxBox.TextSize = 13 
+MaxBox.ZIndex = 2 
+Instance.new("UICorner", MaxBox).CornerRadius = UDim.new(0, 6) 
+Instance.new("UIStroke", MaxBox).Color = Color3.fromRGB(50, 50, 70) 
+
+local HopBtn = Instance.new("TextButton", MainFrame) 
+HopBtn.Position = UDim2.new(0, 12, 0, 138) 
+HopBtn.Size = UDim2.new(0, 112, 0, 42) 
+HopBtn.BackgroundColor3 = Color3.fromRGB(70, 100, 255) 
+HopBtn.BorderSizePixel = 0 
+HopBtn.Font = Enum.Font.GothamBold 
+HopBtn.Text = "Saltar Una Vez" 
+HopBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+HopBtn.TextSize = 11 
+HopBtn.ZIndex = 2 
+Instance.new("UICorner", HopBtn).CornerRadius = UDim.new(0, 6) 
+AddHoverAnim(HopBtn, Color3.fromRGB(90, 120, 255), Color3.fromRGB(70, 100, 255)) 
+
+local AutoBtn = Instance.new("TextButton", MainFrame) 
+AutoBtn.Position = UDim2.new(0, 134, 0, 138) 
+AutoBtn.Size = UDim2.new(0, 114, 0, 42) 
+AutoBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60) 
+AutoBtn.BorderSizePixel = 0 
+AutoBtn.Font = Enum.Font.GothamBold 
+AutoBtn.Text = "Auto Hop: OFF" 
+AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+AutoBtn.TextSize = 11 
+AutoBtn.ZIndex = 2 
+Instance.new("UICorner", AutoBtn).CornerRadius = UDim.new(0, 6) 
+AddHoverAnim(AutoBtn, Color3.fromRGB(255, 80, 80), Color3.fromRGB(220, 60, 60)) 
+
+-- ========================================== 
+-- LÓGICA DE BÚSQUEDA (RÁPIDA Y PROFUNDA) 
+-- ========================================== 
+local autoEnabled = false 
+local autoThread = nil 
+local isHopping = false 
+-- FIX: Escanear hasta 100 páginas para cavar más profundo en la lista de servidores
+local MAX_PAGES = 100 
+
+task.spawn(function() 
+    while ScreenGui.Parent do 
+        NowLabel.Text = "👥 En el servidor: " .. #Players:GetPlayers() 
+        task.wait(1) 
+    end 
+end) 
+
+TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage) 
+    if player == LocalPlayer and isHopping then 
+        StatusLabel.Text = "Fallo de conexión. Reintentando..." 
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100) 
+        task.wait(2) 
+        isHopping = false 
+        hopOnce() 
+    end 
+end) 
+
+local function scanServerList(sortOrder, threshold, currentId, seen, candidates) 
+    local cursor = "" 
+    local pageNum = 0 
+    while pageNum < MAX_PAGES do 
+        local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&excludeFullGames=true&limit=100" 
+        if cursor ~= "" then url = url .. "&cursor=" .. cursor end 
+        local ok, raw = pcall(function() return game:HttpGet(url) end) 
+        if not ok or not raw or raw == "" then task.wait(0.3) return end 
+        
+        if raw:find("Too Many Requests") then 
+            StatusLabel.Text = "Rate limit. Esperando 2s..." 
+            task.wait(2) 
+            continue 
+        end 
+        
+        local ok2, data = pcall(HttpService.JSONDecode, HttpService, raw) 
+        if not ok2 or type(data) ~= "table" or not data.data then task.wait(0.2) return end 
+        
+        pageNum = pageNum + 1 
+        for _, s in ipairs(data.data) do 
+            local sid = tostring(s.id) 
+            if sid ~= currentId and not seen[sid] then 
+                local playing = tonumber(s.playing) or 0 
+                local maxP = tonumber(s.maxPlayers) or 0 
+                -- Filtro estricto: exactamente los jugadores permitidos (ej: 1) 
+                if playing > 0 and playing <= threshold and playing < maxP then 
+                    seen[sid] = true 
+                    table.insert(candidates, {id = sid, page = pageNum}) 
+                end 
+            end 
+        end 
+        
+        StatusLabel.Text = "Pág " .. pageNum .. " (" .. sortOrder .. ") | Ocultos: " .. #candidates 
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100) 
+        if not data.nextPageCursor then return end 
+        cursor = data.nextPageCursor 
+    end 
+end 
+
+local function getDeepServer(threshold) 
+    local currentId = tostring(game.JobId) 
+    local seen = {} 
+    local candidates = {} 
+    
+    scanServerList("Asc", threshold, currentId, seen, candidates) 
+    if #candidates == 0 then 
+        StatusLabel.Text = "Asc agotado. Probando Desc..." 
+        scanServerList("Desc", threshold, currentId, seen, candidates) 
+    end 
+    if #candidates == 0 then return nil end 
+    
+    table.sort(candidates, function(a, b) return a.page < b.page end) 
+    
+    -- FIX: Elegir de forma completamente al azar entre TODOS los servidores encontrados
+    -- Esto evita los servidores de las primeras páginas que Roblox está llenando rápido
+    local pick = candidates[math.random(1, #candidates)] 
+    
+    StatusLabel.Text = "Elegido de pág " .. pick.page .. " | Total: " .. #candidates 
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 150) 
+    return pick.id 
+end 
+
+function hopOnce() 
+    if isHopping then return false end 
+    isHopping = true 
+    local threshold = tonumber(MaxBox.Text) or 1 
+    local currentCount = #Players:GetPlayers() 
+    if currentCount <= threshold then 
+        StatusLabel.Text = "Ya estás en un servidor perfecto (" .. currentCount .. " jug)." 
+        StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150) 
+        isHopping = false 
+        return false 
+    end 
+    StatusLabel.Text = "Buscando servidor oculto con " .. threshold .. " jug..." 
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100) 
+    
+    local serverId = getDeepServer(threshold) 
+    
+    if not serverId then 
+        StatusLabel.Text = "Sin servidores. Reintento en 3s..." 
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 120, 120) 
+        isHopping = false 
+        task.wait(3) 
+        if autoEnabled then hopOnce() end 
+        return false 
+    end 
+    
+    StatusLabel.Text = "¡Servidor oculto hallado! Conectando..." 
+    StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255) 
+    local ok = pcall(function() 
+        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer) 
+    end) 
+    
+    if not ok then 
+        StatusLabel.Text = "Falló el teleport. Reintentando..." 
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100) 
+        task.wait(2) 
+        isHopping = false 
+        hopOnce() 
+        return false 
+    end 
+    return true 
+end 
+
+HopBtn.MouseButton1Click:Connect(function() 
+    ClickSound:Play() 
+    HopBtn.Active = false 
+    hopOnce() 
+    task.wait(2) 
+    HopBtn.Active = true 
+end) 
+
+AutoBtn.MouseButton1Click:Connect(function() 
+    ClickSound:Play() 
+    autoEnabled = not autoEnabled 
+    if autoEnabled then 
+        AutoBtn.Text = "Auto Hop: ON" 
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 70) 
+        autoThread = task.spawn(function() 
+            while autoEnabled and ScreenGui.Parent do 
+                local threshold = tonumber(MaxBox.Text) or 1 
+                local count = #Players:GetPlayers() 
+                if count <= threshold then 
+                    StatusLabel.Text = "✓ " .. count .. " jug aquí. Esperando..." 
+                    StatusLabel.TextColor3 = Color3.fromRGB(150, 255, 150) 
+                    task.wait(3) 
+                else 
+                    hopOnce() 
+                    task.wait(5) 
+                end 
+            end 
+        end) 
+    else 
+        AutoBtn.Text = "Auto Hop: OFF" 
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60) 
+        if autoThread then 
+            task.cancel(autoThread) 
+            autoThread = nil 
+        end 
+        StatusLabel.Text = "Auto Hop detenido." 
+        StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 200) 
+        isHopping = false 
+    end 
+end) 
+
+StatusLabel.Text = "Listo. Pon 1 en la caja y dale Auto Hop."

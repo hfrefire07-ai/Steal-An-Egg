@@ -1,0 +1,528 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local SoundService = game:GetService("SoundService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+
+if hookmetamethod and getnamecallmethod then
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if (method == "Kick" or method == "kick") and self == LocalPlayer then return end
+        if method == "FireServer" or method == "InvokeServer" then
+            local nm = tostring(self.Name):lower()
+            if nm:find("exploit") or nm:find("cheat") or nm:find("detect")
+            or nm:find("ban") or nm:find("flag") or nm:find("validate")
+            or nm:find("integrity") or nm:find("security") or nm:find("anticheat")
+            or nm:find("ac_") then return end
+        end
+        return oldNamecall(self, ...)
+    end))
+
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if checkcaller and checkcaller() and (key == "Kick" or key == "kick") and self == LocalPlayer then
+            return function() end
+        end
+        return oldIndex(self, key)
+    end))
+end
+
+pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+pcall(function() settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01 end)
+pcall(function() settings().Rendering.EdfGraphicsQuality = Enum.QualityLevel.Level01 end)
+pcall(function() settings().Rendering.SavedQualityLevel = Enum.QualityLevel.Level01 end)
+
+pcall(function()
+    LocalPlayer.CameraMaxZoomDistance = 15
+    LocalPlayer.CameraMinZoomDistance = 5
+end)
+
+local KILL = {
+    ParticleEmitter = true, Trail = true, Beam = true,
+    Fire = true, Smoke = true, Sparkles = true, Explosion = true,
+    Decal = true, Texture = true,
+    Sky = true, Atmosphere = true, Cloud = true,
+    Highlight = true, SelectionBox = true,
+}
+
+local function cleanObj(obj)
+    if KILL[obj.ClassName] then
+        pcall(function()
+            local c = obj.ClassName
+            if c == "Explosion" or c == "Cloud" then
+                obj:Destroy()
+            elseif c == "Decal" or c == "Texture" then
+                obj.Transparency = 1
+            elseif c == "Highlight" or c == "SelectionBox" then
+                obj:Destroy()
+            else
+                obj.Enabled = false
+            end
+        end)
+    end
+end
+
+Workspace.DescendantAdded:Connect(cleanObj)
+
+task.spawn(function()
+    local n = 0
+    for _, o in ipairs(Workspace:GetDescendants()) do
+        cleanObj(o)
+        n = n + 1
+        if n % 150 == 0 then task.wait() end
+    end
+end)
+
+local function cleanCharacter(char)
+    if not char then return end
+    task.spawn(function()
+        for _, p in ipairs(char:GetDescendants()) do
+            pcall(function()
+                if p:IsA("BasePart") then
+                    p.Material = Enum.Material.SmoothPlastic
+                    p.Reflectance = 0
+                    p.CastShadow = false
+                elseif p:IsA("Decal") or p:IsA("Texture") then
+                    p.Transparency = 1
+                elseif p:IsA("Accessory") then
+                    p:Destroy()
+                elseif p:IsA("ParticleEmitter") or p:IsA("Trail")
+                or p:IsA("Beam") or p:IsA("Fire")
+                or p:IsA("Smoke") or p:IsA("Sparkles") then
+                    p.Enabled = false
+                end
+            end)
+        end
+    end)
+end
+
+local function hookPlr(plr)
+    if plr.Character then cleanCharacter(plr.Character) end
+    plr.CharacterAdded:Connect(cleanCharacter)
+end
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then hookPlr(p) end
+end
+Players.PlayerAdded:Connect(hookPlr)
+
+pcall(function()
+    Workspace.Terrain.WaterWaveSize = 0
+    Workspace.Terrain.WaterWaveSpeed = 0
+    Workspace.Terrain.WaterReflectance = 0
+    Workspace.Terrain.Decoration = false
+end)
+
+task.spawn(function()
+    while SoundService.Parent do
+        pcall(function()
+            for _, s in ipairs(SoundService:GetDescendants()) do
+                if s:IsA("Sound") then
+                    if s.Playing then s.Volume = math.min(s.Volume, 0.3) end
+                    if s.TimeLength == 0 then s:Destroy() end
+                end
+            end
+        end)
+        task.wait(2)
+    end
+end)
+
+Workspace.DescendantAdded:Connect(function(o)
+    pcall(function()
+        local n = o.Name:lower()
+        if n:find("debris") or n:find("fragment") or n:find("gib")
+        or n:find("corpse") or n:find("ragdoll") then
+            o:Destroy()
+        end
+    end)
+end)
+
+pcall(function()
+    local cam = Workspace.CurrentCamera
+    if cam then
+        cam.FieldOfView = 70
+    end
+end)
+
+task.spawn(function()
+    while LocalPlayer.Parent do
+        pcall(function()
+            local char = LocalPlayer.Character
+            if char then
+                local h = char:FindFirstChildOfClass("Humanoid")
+                if h then
+                    h.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+                    h.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+                    h.NameDisplayDistance = 0
+                    h.HealthDisplayDistance = 0
+                end
+            end
+        end)
+        task.wait(2)
+    end
+end)
+
+local HIDE_NAMES = {
+    "PlayerList",
+    "EmotesMenu",
+    "EmoteMenu",
+    "TopBarApp",
+    "TopbarApp",
+    "Notification",
+    "NotificationFrame",
+    "SettingsShade",
+}
+
+local function shouldHide(name)
+    local lname = name:lower()
+    for _, n in ipairs(HIDE_NAMES) do
+        if lname == n:lower() then return true end
+    end
+    return false
+end
+
+local function hideGui(parent)
+    if not parent then return end
+    task.spawn(function()
+        for _, g in ipairs(parent:GetChildren()) do
+            pcall(function()
+                if shouldHide(g.Name) then g.Enabled = false end
+            end)
+        end
+    end)
+end
+
+hideGui(CoreGui)
+hideGui(LocalPlayer:FindFirstChild("PlayerGui"))
+
+local function watchGui(parent)
+    if not parent then return end
+    parent.ChildAdded:Connect(function(g)
+        pcall(function()
+            if shouldHide(g.Name) then g.Enabled = false end
+        end)
+    end)
+end
+watchGui(CoreGui)
+watchGui(LocalPlayer:FindFirstChild("PlayerGui"))
+LocalPlayer.ChildAdded:Connect(function(c)
+    if c.Name == "PlayerGui" then watchGui(c) end
+end)
+
+Workspace.DescendantAdded:Connect(function(obj)
+    pcall(function()
+        if obj:IsA("BillboardGui") and obj.Adornee then
+            obj.Enabled = false
+        elseif obj:IsA("SurfaceGui") then
+            obj.Enabled = false
+        elseif obj:IsA("Highlight") then
+            obj:Destroy()
+        end
+    end)
+end)
+
+task.spawn(function()
+    while RunService:IsRunning() do
+        pcall(function()
+            for _, e in ipairs(Workspace:GetChildren()) do
+                if e:IsA("Explosion") then e:Destroy() end
+            end
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
+        end)
+        task.wait(3)
+    end
+end)
+
+task.spawn(function()
+    while RunService:IsRunning() do
+        pcall(function()
+            local count = 0
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                count = count + 1
+                if count > 20000 then break end
+            end
+            if count > 20000 then
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    pcall(function()
+                        if obj:IsA("BasePart") then
+                            if not LocalPlayer.Character or not obj:IsDescendantOf(LocalPlayer.Character) then
+                                obj.CastShadow = false
+                            end
+                        end
+                    end)
+                end
+            end
+        end)
+        task.wait(8)
+    end
+end)
+
+local IMAGE_URL = "https://raw.githubusercontent.com/bots-dcx/nigga/main/5244796fec46e7e8c6759fc6eb34024b.jpg"
+local IMAGE_FILE = "nigga_hub_bg.jpg"
+local AUDIO_URL = "https://raw.githubusercontent.com/bots-dcx/nigga/main/HOMBRE-2026-09-16-19-45-Nigga-on-top-%5Bexcited%5D-somos-una-comunidad-peque.mp3"
+local AUDIO_FILE = "intro.mp3"
+
+local imageAsset, audioAsset = nil, nil
+
+task.spawn(function()
+    pcall(function()
+        if isfile and writefile and getcustomasset then
+            if not isfile(IMAGE_FILE) then
+                writefile(IMAGE_FILE, game:HttpGet(IMAGE_URL, true))
+            end
+            for _ = 1, 5 do
+                local ok, r = pcall(getcustomasset, IMAGE_FILE)
+                if ok and r then imageAsset = r break end
+                task.wait(0.15)
+            end
+        end
+    end)
+end)
+
+task.spawn(function()
+    pcall(function()
+        if isfile and writefile and getcustomasset then
+            if not isfile(AUDIO_FILE) then
+                writefile(AUDIO_FILE, game:HttpGet(AUDIO_URL, true))
+            end
+            for _ = 1, 5 do
+                local ok, r = pcall(getcustomasset, AUDIO_FILE)
+                if ok and r then audioAsset = r break end
+                task.wait(0.15)
+            end
+        end
+    end)
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NiggaHubInstaGrab"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 5
+ScreenGui.Parent = (gethui and gethui()) or LocalPlayer:WaitForChild("PlayerGui")
+
+task.spawn(function()
+    local introGui = Instance.new("ScreenGui")
+    introGui.Name = "NiggaIntro"
+    introGui.ResetOnSpawn = false
+    introGui.IgnoreGuiInset = true
+    introGui.DisplayOrder = 9999
+    introGui.Parent = ScreenGui.Parent
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.new(0, 0, 0)
+    bg.BackgroundTransparency = 1
+    bg.BorderSizePixel = 0
+    bg.ZIndex = 1
+    bg.Parent = introGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 50)
+    title.Position = UDim2.new(0, 0, 0.5, -25)
+    title.BackgroundTransparency = 1
+    title.Text = "NIGGA ON TOP"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextSize = 36
+    title.Font = Enum.Font.GothamBold
+    title.TextTransparency = 1
+    title.ZIndex = 2
+    title.Parent = introGui
+
+    local strk = Instance.new("UIStroke")
+    strk.Thickness = 2
+    strk.Color = Color3.fromRGB(255, 0, 255)
+    strk.Transparency = 1
+    strk.Parent = title
+
+    if audioAsset then
+        local snd = Instance.new("Sound")
+        snd.SoundId = audioAsset
+        snd.Volume = 2
+        snd.Parent = ScreenGui
+        snd:Play()
+        task.delay(30, function()
+            pcall(function() snd:Destroy() end)
+        end)
+    end
+
+    TweenService:Create(bg, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+    task.wait(0.4)
+    TweenService:Create(title, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    TweenService:Create(strk, TweenInfo.new(0.6), {Transparency = 0}):Play()
+    task.wait(2)
+    TweenService:Create(bg, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(title, TweenInfo.new(1), {TextTransparency = 1}):Play()
+    TweenService:Create(strk, TweenInfo.new(1), {Transparency = 1}):Play()
+    task.wait(1)
+    introGui:Destroy()
+end)
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 190, 0, 130)
+Main.Position = UDim2.new(0.5, -95, 0.3, -65)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Visible = false
+Main.Parent = ScreenGui
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+MainStroke.Parent = Main
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.20, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.40, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.60, Color3.fromRGB(0, 255, 255)),
+    ColorSequenceKeypoint.new(0.80, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 255))
+})
+MainGradient.Parent = MainStroke
+
+task.spawn(function()
+    for _ = 1, 30 do
+        if imageAsset then break end
+        task.wait(0.1)
+    end
+    if imageAsset then
+        local Bg = Instance.new("ImageLabel")
+        Bg.Size = UDim2.new(1, 0, 1, 0)
+        Bg.BackgroundTransparency = 1
+        Bg.Image = imageAsset
+        Bg.ScaleType = Enum.ScaleType.Crop
+        Bg.ZIndex = 0
+        Bg.Parent = Main
+        Instance.new("UICorner", Bg).CornerRadius = UDim.new(0, 8)
+    end
+end)
+
+local TopBar = Instance.new("TextButton")
+TopBar.Size = UDim2.new(1, 0, 0, 24)
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TopBar.BackgroundTransparency = 0.3
+TopBar.Text = ""
+TopBar.AutoButtonColor = false
+TopBar.ZIndex = 2
+TopBar.Parent = Main
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+
+local TopTitle = Instance.new("TextLabel")
+TopTitle.Size = UDim2.new(1, -50, 1, 0)
+TopTitle.Position = UDim2.new(0, 8, 0, 0)
+TopTitle.BackgroundTransparency = 1
+TopTitle.Text = "NIGGA HUB INSTA GRAB"
+TopTitle.TextColor3 = Color3.new(1, 1, 1)
+TopTitle.TextSize = 10
+TopTitle.Font = Enum.Font.GothamBold
+TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+TopTitle.ZIndex = 3
+TopTitle.Parent = TopBar
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 20, 0, 18)
+MinBtn.Position = UDim2.new(1, -24, 0, 3)
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+MinBtn.BackgroundTransparency = 0.2
+MinBtn.Text = "â€”"
+MinBtn.TextColor3 = Color3.new(1, 1, 1)
+MinBtn.TextSize = 12
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.ZIndex = 3
+MinBtn.Parent = TopBar
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 4)
+
+local Container = Instance.new("Frame")
+Container.Position = UDim2.new(0, 8, 0, 30)
+Container.Size = UDim2.new(1, -16, 1, -38)
+Container.BackgroundTransparency = 1
+Container.ZIndex = 2
+Container.Parent = Main
+
+local Layout = Instance.new("UIListLayout")
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Padding = UDim.new(0, 4)
+Layout.Parent = Container
+
+local function makeButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.BackgroundTransparency = 0.2
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.ZIndex = 3
+    btn.Parent = Container
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local PromptBtn = makeButton("Insta Grab: OFF")
+local WhatsAppBtn = makeButton("WhatsApp Channel")
+
+local minimized = false
+local fullSize = UDim2.new(0, 190, 0, 130)
+local miniSize = UDim2.new(0, 190, 0, 24)
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    Main.Size = minimized and miniSize or fullSize
+    Container.Visible = not minimized
+    MinBtn.Text = minimized and "+" or "â€”"
+end)
+
+local promptConn, promptActive = nil, false
+PromptBtn.MouseButton1Click:Connect(function()
+    promptActive = not promptActive
+    if promptActive then
+        PromptBtn.Text = "Insta Grab: ON"
+        PromptBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+        promptConn = ProximityPromptService.PromptShown:Connect(function(p)
+            if p.HoldDuration > 0.5 then p.HoldDuration = 0 end
+        end)
+    else
+        PromptBtn.Text = "Insta Grab: OFF"
+        PromptBtn.TextColor3 = Color3.new(1, 1, 1)
+        if promptConn then promptConn:Disconnect() promptConn = nil end
+    end
+end)
+
+local WA = "https://whatsapp.com/channel/0029VbD9jQ46GcGHPphhqC2S"
+WhatsAppBtn.MouseButton1Click:Connect(function()
+    local fn = setclipboard or toclipboard or setrbxclipboard
+    if fn then
+        local ok = pcall(fn, WA)
+        WhatsAppBtn.Text = ok and "Â¡Copiado!" or "Error"
+        WhatsAppBtn.TextColor3 = ok and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 80, 80)
+        task.delay(2, function()
+            WhatsAppBtn.Text = "WhatsApp Channel"
+            WhatsAppBtn.TextColor3 = Color3.new(1, 1, 1)
+        end)
+    end
+end)
+
+task.delay(4, function() Main.Visible = true end)
+
+task.spawn(function()
+    local rot = 0
+    while ScreenGui.Parent do
+        rot = rot + 9
+        if rot >= 360 then rot = 0 end
+        MainGradient.Rotation = rot
+        task.wait(0.2)
+    end
+end)

@@ -1,0 +1,885 @@
+-- ============================================================
+-- NIGGA HUB — Anti-Hit CON BOTÓN ON/OFF (lógica del Steal)
+-- + Insta Grab SIEMPRE ON + Anti-Lag + Visión Lejana + Bypass
+-- Flash negro con "NIGGA ANTI HIT" durante el escape
+-- ============================================================
+
+local Players                = game:GetService("Players")
+local RunService             = game:GetService("RunService")
+local TweenService           = game:GetService("TweenService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local UserInputService       = game:GetService("UserInputService")
+local CoreGui                = game:GetService("CoreGui")
+local Workspace              = game:GetService("Workspace")
+local Lighting               = game:GetService("Lighting")
+local SoundService           = game:GetService("SoundService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local S = {
+    escaping     = false,
+    escapeAt     = 0,
+    stealing     = false,
+    lastStealAt  = 0,
+}
+
+local ESCAPE_COOLDOWN = 2.0
+
+-- ============================================================
+-- HOOK: Anti-Kick + Anti-Cheat + bloqueo de daño si S.stealing
+-- ============================================================
+if hookmetamethod and getnamecallmethod then
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+
+        if (method == "Kick" or method == "kick") and self == LocalPlayer then return end
+
+        if method == "FireServer" or method == "InvokeServer" then
+            local ok, nm = pcall(function() return tostring(self.Name):lower() end)
+            if ok and type(nm) == "string" then
+                if nm:find("exploit") or nm:find("cheat") or nm:find("detect")
+                or nm:find("ban")    or nm:find("flag")  or nm:find("validate")
+                or nm:find("integrity") or nm:find("security") or nm:find("anticheat")
+                or nm:find("ac_") then
+                    return
+                end
+
+                if S.stealing then
+                    if nm:find("hithit") or nm:find("dealdamage") or nm:find("takedamage")
+                    or nm:find("applydamage") or nm:find("gethit") or nm:find("registerhit")
+                    or nm:find("guardhit") or nm:find("traphit") or nm:find("stun")
+                    or nm:find("ragdoll") or nm:find("knockback") or nm:find("damage")
+                    or nm:find("kill") or nm:find("attack") or nm:find("hit") then
+                        return
+                    end
+                end
+            end
+        end
+
+        return oldNamecall(self, ...)
+    end))
+
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if checkcaller and checkcaller() and (key == "Kick" or key == "kick") and self == LocalPlayer then
+            return function() end
+        end
+        return oldIndex(self, key)
+    end))
+end
+
+-- ============================================================
+-- PURCHASE PROMPT SHIELD
+-- ============================================================
+pcall(function()
+    CoreGui.ChildAdded:Connect(function(child)
+        if child.Name == "PurchasePrompt" then
+            task.wait(0.04)
+            pcall(function()
+                local cancel = child:FindFirstChild("CancelButton", true)
+                if cancel and cancel:IsA("GuiButton") then
+                    cancel.MouseButton1Click:Fire()
+                end
+            end)
+        end
+    end)
+end)
+
+-- ============================================================
+-- CLIENT AC NEUTRALIZER
+-- ============================================================
+local function ScanGCHeap(step, perChunk)
+    local scan = getgc or (debug and debug.getgc)
+    if type(scan) ~= "function" then return end
+    local ok, objects = pcall(scan, true)
+    if not ok or type(objects) ~= "table" then return end
+    perChunk = perChunk or 400
+    for i = 1, #objects do
+        local obj = objects[i]
+        objects[i] = nil
+        local okStep, stop = pcall(step, obj)
+        if okStep and stop == true then return end
+        if i % perChunk == 0 then task.wait() end
+    end
+end
+
+task.spawn(function()
+    pcall(function()
+        local setmeta = setrawmetatable or setmetatable
+        local getmeta = getrawmetatable or getmetatable
+        if not setmeta then return end
+        ScanGCHeap(function(obj)
+            if typeof(obj) ~= "table" or (getmeta and getmeta(obj)) then return end
+            local mainrun = false
+            for _, v in pairs(obj) do if v == obj then mainrun = true; break end end
+            if not mainrun then return end
+            for _, v in pairs(obj) do
+                if typeof(v) == "number" and v >= 1 and v <= 3 and obj[v] == nil then
+                    pcall(setmeta, obj, { __newindex = function() end })
+                    break
+                end
+            end
+        end)
+    end)
+    task.wait()
+
+    pcall(function()
+        local getconstants = getconstants or (debug and debug.getconstants)
+        local setconstant = setconstant or (debug and debug.setconstant)
+        local islclosure = islclosure or function(Function) return not pcall(setfenv, getfenv(Function)) end
+        if not (getconstants and setconstant and debug and debug.info) then return end
+        ScanGCHeap(function(Function)
+            if typeof(Function) ~= "function" or not islclosure(Function) then return end
+            local ok, Source = pcall(debug.info, Function, "s")
+            if not ok or type(Source) ~= "string" then return end
+            if not Source:find("ReplicatedFirst", 1, true) or not Source:find("UGI", 1, true) then return end
+            local okC, Constants = pcall(getconstants, Function)
+            if not okC or type(Constants) ~= "table" then return end
+            for Index, Constant in next, Constants do
+                if type(Constant) == "string" and Constant == "Humanoid" then
+                    pcall(setconstant, Function, Index, "")
+                end
+            end
+        end)
+    end)
+    task.wait()
+
+    pcall(function()
+        local islclosure = islclosure or function(v) return not pcall(setfenv, getfenv(v)) end
+        local getupvalues = getupvalues or (debug and debug.getupvalues)
+        local getupvalue = getupvalue or (debug and debug.getupvalue)
+        local setupvalue = setupvalue or (debug and debug.setupvalue)
+        local clonefunction = clonefunction or function(f) return function(...) return f(...) end end
+        if not (getupvalues and getupvalue and setupvalue) then return end
+        ScanGCHeap(function(v)
+            if typeof(v) ~= "function" or not islclosure(v) then return end
+            local ok, upvs = pcall(getupvalues, v)
+            if not ok or type(upvs) ~= "table" or #upvs ~= 19 then return end
+            local ok2, u2 = pcall(getupvalue, v, 2)
+            if not ok2 or typeof(u2) ~= "function" then return end
+            local old = clonefunction(u2)
+            pcall(setupvalue, v, 2, function(a, b)
+                if b and typeof(b) == "table" then pcall(setmetatable, b, {}) end
+                return old(a, b)
+            end)
+        end)
+    end)
+end)
+
+-- ============================================================
+-- MEMORY EVIDENCE SCRUBBER
+-- ============================================================
+task.spawn(function()
+    if not (getgc or (debug and debug.getgc)) then return end
+    local st, misses = nil, 0
+    local function findIntegrityTable()
+        local found = nil
+        ScanGCHeap(function(o)
+            if found then return true end
+            if type(o) ~= "table" then return end
+            local hit = false
+            pcall(function()
+                hit = (rawget(o, "ValidationLocked") ~= nil and rawget(o, "Evidence") ~= nil)
+                    or (rawget(o, "ThreatLevel") ~= nil and rawget(o, "LastObservedSample") ~= nil)
+            end)
+            if hit then found = o; return true end
+        end, 250)
+        return found
+    end
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1); st = findIntegrityTable()
+    end)
+    while true do
+        if not st then
+            st = findIntegrityTable()
+            if not st then
+                misses = misses + 1
+                local waitFor = math.min(5 * (2 ^ math.min(misses - 1, 3)), 30)
+                local slept = 0
+                while slept < waitFor do task.wait(0.5); slept = slept + 0.5 end
+            elseif misses > 0 then misses = 0 end
+        end
+        if st then
+            pcall(function()
+                local ev = rawget(st, "Evidence")
+                if type(ev) == "table" then
+                    if (tonumber(ev.Speed) or 0) > 0 then rawset(ev, "Speed", 0) end
+                    if (tonumber(ev.Teleport) or 0) > 0 then rawset(ev, "Teleport", 0) end
+                    if (tonumber(ev.Flight) or 0) > 0 then rawset(ev, "Flight", 0) end
+                end
+                if rawget(st, "ThreatLevel") ~= "Trusted" then rawset(st, "ThreatLevel", "Trusted") end
+                if rawget(st, "ValidationLocked") == true then rawset(st, "ValidationLocked", false) end
+                if rawget(st, "KickQueued") == true then rawset(st, "KickQueued", false) end
+            end)
+        end
+        task.wait(0.2)
+    end
+end)
+
+-- ============================================================
+-- VISIÓN LEJANA + CARGA DE MAPA
+-- ============================================================
+task.spawn(function()
+    pcall(function()
+        Lighting.FogEnd = math.huge
+        Lighting.FogStart = math.huge
+        Lighting.FogColor = Color3.new(0, 0, 0)
+    end)
+    pcall(function()
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA("Atmosphere") then
+                obj.Density = 0; obj.Haze = 0; obj.Glare = 0; obj.Offset = 0
+            end
+        end
+    end)
+    pcall(function()
+        LocalPlayer.CameraMaxZoomDistance = 1000000
+        LocalPlayer.CameraMinZoomDistance = 0.1
+    end)
+    while true do
+        pcall(function()
+            if Lighting.FogEnd ~= math.huge then Lighting.FogEnd = math.huge end
+            if Lighting.FogStart ~= math.huge then Lighting.FogStart = math.huge end
+            if LocalPlayer.CameraMaxZoomDistance < 100000 then
+                LocalPlayer.CameraMaxZoomDistance = 1000000
+            end
+            for _, obj in ipairs(Lighting:GetChildren()) do
+                if obj:IsA("Atmosphere") and obj.Density > 0 then
+                    obj.Density = 0; obj.Haze = 0
+                end
+            end
+        end)
+        task.wait(2)
+    end
+end)
+
+task.spawn(function()
+    task.wait(1)
+    while true do
+        pcall(function()
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local basePos = hrp and hrp.Position or Vector3.new(500, 70, -360)
+            pcall(function() LocalPlayer:RequestStreamAroundAsync(basePos) end)
+            local keyPoints = {
+                Vector3.new(500, 70, -364), Vector3.new(1200, 70, -370),
+                Vector3.new(2000, 70, -360), Vector3.new(2800, 70, -380),
+                Vector3.new(3400, 70, -340), Vector3.new(4000, 70, -390),
+                Vector3.new(4800, 70, -340), Vector3.new(5600, 70, -340),
+            }
+            for _, pos in ipairs(keyPoints) do
+                pcall(function() LocalPlayer:RequestStreamAroundAsync(pos) end)
+                task.wait(0.15)
+            end
+        end)
+        task.wait(15)
+    end
+end)
+
+-- ============================================================
+-- ANTI-LAG
+-- ============================================================
+local KILL_CLASSES = {
+    ParticleEmitter = true, Trail = true, Beam = true,
+    Fire = true, Smoke = true, Sparkles = true, Explosion = true,
+    Cloud = true, Highlight = true, SelectionBox = true,
+}
+
+local function cleanVisual(obj)
+    if not KILL_CLASSES[obj.ClassName] then return end
+    pcall(function()
+        local c = obj.ClassName
+        if c == "Explosion" or c == "Cloud" or c == "Highlight" or c == "SelectionBox" then
+            obj:Destroy()
+        else
+            obj.Enabled = false
+        end
+    end)
+end
+
+Workspace.DescendantAdded:Connect(function(obj) cleanVisual(obj) end)
+
+task.spawn(function()
+    local n = 0
+    for _, o in ipairs(Workspace:GetDescendants()) do
+        cleanVisual(o); n = n + 1
+        if n % 200 == 0 then task.wait() end
+    end
+    while true do
+        local count = 0
+        for _, o in ipairs(Workspace:GetDescendants()) do
+            cleanVisual(o); count = count + 1
+            if count % 300 == 0 then task.wait() end
+        end
+        task.wait(5)
+    end
+end)
+
+task.spawn(function()
+    task.wait(0.5)
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
+    end)
+end)
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            local char = LocalPlayer.Character
+            for _, o in ipairs(Workspace:GetDescendants()) do
+                if o:IsA("BasePart") and o.CastShadow then
+                    if not char or not o:IsDescendantOf(char) then o.CastShadow = false end
+                end
+            end
+            for _, s in ipairs(SoundService:GetDescendants()) do
+                if s:IsA("Sound") and s.Playing then s.Volume = math.min(s.Volume, 0.25) end
+            end
+            for _, e in ipairs(Workspace:GetChildren()) do
+                if e:IsA("Explosion") then e:Destroy() end
+            end
+        end)
+        task.wait(4)
+    end
+end)
+
+-- ============================================================
+-- INSTA GRAB — SIEMPRE ACTIVO
+-- ============================================================
+do
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            if not obj:GetAttribute("NiggaHubOrigHold") then
+                obj:SetAttribute("NiggaHubOrigHold", obj.HoldDuration)
+            end
+            obj.HoldDuration = 0
+        end
+    end
+    workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("ProximityPrompt") then
+            if not obj:GetAttribute("NiggaHubOrigHold") then
+                obj:SetAttribute("NiggaHubOrigHold", obj.HoldDuration)
+            end
+            obj.HoldDuration = 0
+        end
+    end)
+    ProximityPromptService.PromptShown:Connect(function(p)
+        if p and p.HoldDuration and p.HoldDuration > 0 then
+            p.HoldDuration = 0
+        end
+    end)
+end
+
+-- ============================================================
+-- UI — Anti Hit ON/OFF + Flash negro "NIGGA ANTI HIT"
+-- ============================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name           = "NiggaHub"
+ScreenGui.ResetOnSpawn   = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder   = 5
+local parentOk = pcall(function()
+    ScreenGui.Parent = (gethui and gethui()) or CoreGui
+end)
+if not parentOk or not ScreenGui.Parent then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- ============================================================
+-- FLASH NEGRO: se activa SOLO durante el escape.
+-- Aparece de golpe (transparency 0) y se va en ~0.25s al terminar.
+-- ============================================================
+local FlashGui = Instance.new("ScreenGui")
+FlashGui.Name           = "NiggaAntiHitFlash"
+FlashGui.ResetOnSpawn   = false
+FlashGui.IgnoreGuiInset = true
+FlashGui.DisplayOrder   = 999999
+local flashParentOk = pcall(function()
+    FlashGui.Parent = (gethui and gethui()) or CoreGui
+end)
+if not flashParentOk or not FlashGui.Parent then
+    FlashGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local FlashFrame = Instance.new("Frame")
+FlashFrame.Name                   = "FlashFrame"
+FlashFrame.Size                   = UDim2.fromScale(1, 1)
+FlashFrame.Position               = UDim2.fromScale(0, 0)
+FlashFrame.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+FlashFrame.BackgroundTransparency = 1
+FlashFrame.BorderSizePixel        = 0
+FlashFrame.Visible                = false
+FlashFrame.ZIndex                 = 999998
+FlashFrame.Parent                 = FlashGui
+
+local FlashText = Instance.new("TextLabel")
+FlashText.Name                   = "FlashText"
+FlashText.AnchorPoint            = Vector2.new(0.5, 0.5)
+FlashText.Position               = UDim2.fromScale(0.5, 0.5)
+FlashText.Size                   = UDim2.fromScale(1, 0.3)
+FlashText.BackgroundTransparency = 1
+FlashText.Text                   = "NIGGA ANTI HIT"
+FlashText.TextColor3             = Color3.fromRGB(255, 255, 255)
+FlashText.Font                   = Enum.Font.GothamBlack
+FlashText.TextScaled             = true
+FlashText.TextXAlignment         = Enum.TextXAlignment.Center
+FlashText.TextYAlignment         = Enum.TextYAlignment.Center
+FlashText.TextStrokeColor3       = Color3.fromRGB(140, 60, 255)
+FlashText.TextStrokeTransparency = 0
+FlashText.Visible                = false
+FlashText.ZIndex                 = 999999
+FlashText.Parent                 = FlashFrame
+
+local FLASH_TEXT_SIZE = 120  -- tamaño base en px (se adapta con UIScale abajo)
+
+-- UIScale para que el texto sea enorme y se adapte a cualquier pantalla
+local FlashScale = Instance.new("UIScale")
+FlashScale.Scale = 1
+FlashScale.Parent = FlashText
+
+local FlashTextSizeConstraint = Instance.new("UITextSizeConstraint")
+FlashTextSizeConstraint.MaxTextSize = FLASH_TEXT_SIZE
+FlashTextSizeConstraint.MinTextSize = 40
+FlashTextSizeConstraint.Parent = FlashText
+
+-- Mostrar flash (instantáneo, sin tween de entrada)
+local function showFlash()
+    FlashFrame.Visible   = true
+    FlashFrame.BackgroundTransparency = 0
+    FlashText.Visible    = true
+    FlashText.TextTransparency        = 0
+    FlashText.TextStrokeTransparency  = 0
+end
+
+-- Ocultar flash con fade rápido (~0.2s)
+local function hideFlash()
+    task.spawn(function()
+        local t0 = os.clock()
+        local dur = 0.2
+        while os.clock() - t0 < dur do
+            local a = (os.clock() - t0) / dur
+            FlashFrame.BackgroundTransparency = a
+            FlashText.TextTransparency        = a
+            FlashText.TextStrokeTransparency  = a
+            RunService.RenderStepped:Wait()
+        end
+        FlashFrame.Visible = false
+        FlashText.Visible  = false
+        FlashFrame.BackgroundTransparency = 1
+        FlashText.TextTransparency        = 1
+    end)
+end
+
+-- ============================================================
+-- ANTI-HIT — TOGGLE CON LÓGICA DEL STEAL
+-- ============================================================
+local antiHitEnabled = false
+
+local ESCAPE_MAIN = {
+    Vector3.new(500.62, 241.28, -366.64),
+    Vector3.new(504.45, 155.8,  -366.35),
+    Vector3.new(508.3,  70.28,  -366.03),
+    Vector3.new(513.86, 70.28,  -366.25),
+    Vector3.new(519.43, 70.28,  -366.47),
+    Vector3.new(524.32, 70.28,  -366.59),
+    Vector3.new(529.22, 70.28,  -366.71),
+    Vector3.new(538.01, 70.28,  -365.55),
+    Vector3.new(546.8,  70.28,  -364.4),
+}
+local SAFE_ANCHOR = Vector3.new(546.8, 70.28, -364.4)
+
+local function doEscape()
+    if not antiHitEnabled then return end
+    local now = os.clock()
+    if S.escaping then return end
+    if (now - S.escapeAt) < ESCAPE_COOLDOWN then return end
+    S.escaping = true
+    S.escapeAt = now
+
+    showFlash()
+
+    task.spawn(function()
+        local char = LocalPlayer.Character
+        if not char then
+            S.escaping = false
+            hideFlash()
+            return
+        end
+        pcall(function()
+            for i, pos in ipairs(ESCAPE_MAIN) do
+                local c = LocalPlayer.Character
+                if not c then return end
+                local hrp = c:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(pos)
+                    hrp.AssemblyLinearVelocity  = Vector3.zero
+                    hrp.AssemblyAngularVelocity = Vector3.zero
+                else
+                    pcall(function() c:PivotTo(CFrame.new(pos)) end)
+                end
+                if i < #ESCAPE_MAIN then RunService.Heartbeat:Wait() end
+            end
+            local c = LocalPlayer.Character
+            if c then
+                local hrp = c:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(SAFE_ANCHOR)
+                    hrp.AssemblyLinearVelocity  = Vector3.zero
+                    hrp.AssemblyAngularVelocity = Vector3.zero
+                end
+            end
+        end)
+        task.wait(0.05)
+        S.escaping = false
+        hideFlash()
+    end)
+end
+
+-- ============================================================
+-- DETECCIÓN DE HUEVO
+-- ============================================================
+local NOT_EGG_NAMES = {
+    bat = true, defaulttool = true, sword = true, knife = true,
+    slap = true, coil = true, potion = true, lantern = true,
+    tool = true, ["golden slap"] = true,
+}
+
+local function isToolEgg(t)
+    if t:GetAttribute("IsEgg") == true then return true end
+    if t:GetAttribute("Uid") ~= nil and t:GetAttribute("Uid") ~= "" then return true end
+    if t:GetAttribute("AssetCategory") ~= nil then return true end
+    local n = t.Name:lower()
+    if n:find("egg") then return true end
+    if not NOT_EGG_NAMES[n] and not n:find("bat") and not n:find("slap") then
+        if t:FindFirstChild("Handle") then return true end
+    end
+    return false
+end
+
+local function isCarryingEgg()
+    local char = LocalPlayer.Character
+    if not char then return false end
+
+    local flags = { "CarryingEgg", "HasEgg", "IsCarrying", "CarriedEgg" }
+    for _, f in ipairs(flags) do
+        if LocalPlayer:GetAttribute(f) == true then return true end
+    end
+    local uid = LocalPlayer:GetAttribute("CarriedUid")
+    if uid and uid ~= "" then return true end
+
+    local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pg then
+        local dropGui = pg:FindFirstChild("DropHeldEgg")
+        if dropGui and dropGui.Enabled == true then return true end
+    end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        if hrp:GetAttribute("CarryingEgg") == true then return true end
+        if hrp:GetAttribute("HasEgg") == true then return true end
+    end
+
+    for _, t in ipairs(char:GetChildren()) do
+        if t:IsA("Tool") and isToolEgg(t) then return true end
+        if t:IsA("Model") then
+            if t.Name:lower():find("egg") then return true end
+            if t:GetAttribute("Uid") or t:GetAttribute("AssetCategory") then return true end
+        end
+        if t:IsA("Accessory") and t.Name:lower():find("egg") then return true end
+    end
+
+    return false
+end
+
+ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+    if not antiHitEnabled then return end
+    if player ~= LocalPlayer then return end
+    local nm = (prompt and prompt.Name or ""):lower()
+    if nm:find("egg") or nm:find("carry") then
+        S.stealing = true
+        S.lastStealAt = os.clock()
+        doEscape()
+    end
+end)
+
+ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+    if not antiHitEnabled then return end
+    if player ~= LocalPlayer then return end
+    local nm = (prompt and prompt.Name or ""):lower()
+    if nm:find("egg") or nm:find("carry") then
+        S.stealing = true
+        S.lastStealAt = os.clock()
+        pcall(function() prompt.HoldDuration = 0 end)
+        doEscape()
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if antiHitEnabled then
+            local carrying = isCarryingEgg()
+            if carrying then
+                if not S.stealing then S.stealing = true end
+                S.lastStealAt = os.clock()
+            else
+                if S.stealing and (os.clock() - S.lastStealAt) > 0.8 then
+                    S.stealing = false
+                end
+            end
+        else
+            if S.stealing then S.stealing = false end
+        end
+        task.wait(0.1)
+    end
+end)
+
+task.spawn(function()
+    local humConn = nil
+    local baselineHP = 100
+
+    local function bindHum(h)
+        if humConn then pcall(function() humConn:Disconnect() end) end
+        if not h then return end
+        baselineHP = h.MaxHealth
+        humConn = h:GetPropertyChangedSignal("Health"):Connect(function()
+            if not antiHitEnabled then return end
+            if not S.stealing then return end
+            if h.Health < h.MaxHealth - 0.1 then
+                pcall(function() h.Health = h.MaxHealth end)
+                doEscape()
+            end
+        end)
+    end
+
+    LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait(0.2)
+        bindHum(c:FindFirstChildOfClass("Humanoid"))
+    end)
+
+    if LocalPlayer.Character then
+        bindHum(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"))
+    end
+
+    while true do
+        if antiHitEnabled and S.stealing then
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                if hum.Health < hum.MaxHealth - 0.1 then
+                    pcall(function() hum.Health = hum.MaxHealth end)
+                end
+                local st = hum:GetState()
+                if st == Enum.HumanoidStateType.Physics
+                or st == Enum.HumanoidStateType.Ragdoll
+                or st == Enum.HumanoidStateType.FallingDown then
+                    pcall(function() hum.PlatformStand = false end)
+                    pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
+                end
+                if not humConn or baselineHP ~= hum.MaxHealth then
+                    bindHum(hum)
+                end
+            end
+        end
+        RunService.Heartbeat:Wait()
+    end
+end)
+
+-- ============================================================
+-- Botón flotante + panel
+-- ============================================================
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Name             = "NiggaFloatBtn"
+FloatBtn.Size             = UDim2.fromOffset(44, 44)
+FloatBtn.Position         = UDim2.new(0, 24, 0, 120)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+FloatBtn.BorderSizePixel  = 0
+FloatBtn.Text             = "NIGGA"
+FloatBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+FloatBtn.TextSize         = 9
+FloatBtn.Font             = Enum.Font.GothamBlack
+FloatBtn.AutoButtonColor  = false
+FloatBtn.ZIndex           = 100
+FloatBtn.Parent           = ScreenGui
+Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1, 0)
+
+local FloatStroke = Instance.new("UIStroke")
+FloatStroke.Thickness       = 2
+FloatStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+FloatStroke.Color           = Color3.fromRGB(130, 60, 255)
+FloatStroke.Parent          = FloatBtn
+
+local dragging, dragStart, startPos = false, nil, nil
+local targetPos  = FloatBtn.Position
+local currentPos = FloatBtn.Position
+local dragMoved  = false
+
+local function lerpUDim(a, b, t)
+    return UDim2.new(
+        a.X.Scale  + (b.X.Scale  - a.X.Scale)  * t,
+        a.X.Offset + (b.X.Offset - a.X.Offset) * t,
+        a.Y.Scale  + (b.Y.Scale  - a.Y.Scale)  * t,
+        a.Y.Offset + (b.Y.Offset - a.Y.Offset) * t
+    )
+end
+
+FloatBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging, dragStart, startPos, dragMoved = true, input.Position, targetPos, false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if not dragging then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - dragStart
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then dragMoved = true end
+        targetPos = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X * 0.55,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y * 0.55
+        )
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+RunService.RenderStepped:Connect(function(dt)
+    currentPos = lerpUDim(currentPos, targetPos, math.clamp(dt * 14, 0, 1))
+    FloatBtn.Position = currentPos
+end)
+
+local PANEL_W, PANEL_H = 150, 68
+
+local Main = Instance.new("Frame")
+Main.Name             = "MainPanel"
+Main.Size             = UDim2.fromOffset(PANEL_W, PANEL_H)
+Main.Position         = UDim2.new(0.5, -PANEL_W/2, 0.3, -PANEL_H/2)
+Main.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+Main.BorderSizePixel  = 0
+Main.Visible          = false
+Main.ZIndex           = 50
+Main.Parent           = ScreenGui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 9)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness       = 1.5
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+MainStroke.Color           = Color3.fromRGB(130, 60, 255)
+MainStroke.Parent          = Main
+
+local TopBar = Instance.new("TextButton")
+TopBar.Size                   = UDim2.new(1, 0, 0, 24)
+TopBar.BackgroundColor3       = Color3.fromRGB(28, 28, 36)
+TopBar.BackgroundTransparency = 0.2
+TopBar.Text                   = ""
+TopBar.AutoButtonColor        = false
+TopBar.ZIndex                 = 51
+TopBar.Parent                 = Main
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 9)
+
+local TopLabel = Instance.new("TextLabel")
+TopLabel.Size                   = UDim2.new(1, -36, 1, 0)
+TopLabel.Position               = UDim2.new(0, 10, 0, 0)
+TopLabel.BackgroundTransparency = 1
+TopLabel.Text                   = "NIGGA HUB"
+TopLabel.TextColor3             = Color3.fromRGB(255, 255, 255)
+TopLabel.Font                   = Enum.Font.GothamBlack
+TopLabel.TextSize               = 11
+TopLabel.TextXAlignment         = Enum.TextXAlignment.Left
+TopLabel.ZIndex                 = 52
+TopLabel.Parent                 = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size             = UDim2.fromOffset(18, 18)
+CloseBtn.Position         = UDim2.new(1, -22, 0, 3)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
+CloseBtn.Text             = "✕"
+CloseBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font             = Enum.Font.GothamBold
+CloseBtn.TextSize         = 10
+CloseBtn.AutoButtonColor  = false
+CloseBtn.ZIndex           = 53
+CloseBtn.Parent           = TopBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+local panelDrag, pdStart, pdStartPos = false, nil, nil
+local panelTargetPos  = Main.Position
+local panelCurrentPos = Main.Position
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        panelDrag, pdStart, pdStartPos = true, input.Position, panelTargetPos
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if not panelDrag then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - pdStart
+        panelTargetPos = UDim2.new(
+            pdStartPos.X.Scale, pdStartPos.X.Offset + delta.X * 0.6,
+            pdStartPos.Y.Scale, pdStartPos.Y.Offset + delta.Y * 0.6
+        )
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then panelDrag = false end
+end)
+RunService.RenderStepped:Connect(function(dt)
+    if Main.Visible then
+        panelCurrentPos = lerpUDim(panelCurrentPos, panelTargetPos, math.clamp(dt * 16, 0, 1))
+        Main.Position = panelCurrentPos
+    end
+end)
+
+local Container = Instance.new("Frame")
+Container.Size                   = UDim2.new(1, -12, 1, -30)
+Container.Position               = UDim2.new(0, 6, 0, 26)
+Container.BackgroundTransparency = 1
+Container.ZIndex                 = 51
+Container.Parent                 = Main
+Instance.new("UIListLayout", Container).SortOrder = Enum.SortOrder.LayoutOrder
+Container.UIListLayout.Padding = UDim.new(0, 4)
+
+local AntiHitBtn = Instance.new("TextButton")
+AntiHitBtn.Size             = UDim2.new(1, 0, 0, 32)
+AntiHitBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+AntiHitBtn.BorderSizePixel  = 0
+AntiHitBtn.Text             = "Anti Hit: OFF"
+AntiHitBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+AntiHitBtn.Font             = Enum.Font.GothamBold
+AntiHitBtn.TextSize         = 12
+AntiHitBtn.AutoButtonColor  = false
+AntiHitBtn.ZIndex           = 52
+AntiHitBtn.Parent           = Container
+Instance.new("UICorner", AntiHitBtn).CornerRadius = UDim.new(0, 6)
+
+AntiHitBtn.MouseButton1Click:Connect(function()
+    antiHitEnabled = not antiHitEnabled
+
+    if antiHitEnabled then
+        AntiHitBtn.Text = "Anti Hit: ON"
+        AntiHitBtn.TextColor3       = Color3.fromRGB(0, 255, 150)
+        AntiHitBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 50)
+    else
+        AntiHitBtn.Text = "Anti Hit: OFF"
+        AntiHitBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+        AntiHitBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
+        S.stealing = false
+    end
+end)
+
+FloatBtn.MouseButton1Click:Connect(function()
+    if dragMoved then return end
+    Main.Visible = not Main.Visible
+end)
+
+print("[NIGGA HUB] Cargado.")

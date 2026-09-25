@@ -2,7 +2,7 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 -- ==============================
--- GUI SETUP (DISEÑO INTACTO + ALTURA AJUSTADA)
+-- GUI SETUP (DISEÑO INTACTO + SCROLLING CONTAINER)
 -- ==============================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "Loader_Transparente"
@@ -105,14 +105,23 @@ StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 StatusLabel.TextSize = 12
 StatusLabel.Text = "Esperando selección..."
 
+-- Contenedor con Scroll para albergar todos los botones sin cambiar el alto de la ventana
+local ScrollContainer = Instance.new("ScrollingFrame", MainFrame)
+ScrollContainer.Position = UDim2.new(0, 5, 0, 42)
+ScrollContainer.Size = UDim2.new(1, -10, 0, 240)
+ScrollContainer.BackgroundTransparency = 1
+ScrollContainer.BorderSizePixel = 0
+ScrollContainer.ScrollBarThickness = 4
+ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, 385)
+
 -- ==============================
 -- BOTONES DE SCRIPTS
 -- ==============================
 
 -- 1. Botón Server Hop
-local ServerHopBtn = Instance.new("TextButton", MainFrame)
-ServerHopBtn.Position = UDim2.new(0, 10, 0, 50)
-ServerHopBtn.Size = UDim2.new(0, 270, 0, 40)
+local ServerHopBtn = Instance.new("TextButton", ScrollContainer)
+ServerHopBtn.Position = UDim2.new(0, 5, 0, 0)
+ServerHopBtn.Size = UDim2.new(0, 260, 0, 40)
 ServerHopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
 ServerHopBtn.BackgroundTransparency = 0.3
 ServerHopBtn.BorderSizePixel = 0
@@ -123,9 +132,9 @@ ServerHopBtn.TextSize = 13
 Instance.new("UICorner", ServerHopBtn).CornerRadius = UDim.new(0, 6)
 
 -- 2. Botón Lennon
-local LennonBtn = Instance.new("TextButton", MainFrame)
-LennonBtn.Position = UDim2.new(0, 10, 0, 97)
-LennonBtn.Size = UDim2.new(0, 270, 0, 40)
+local LennonBtn = Instance.new("TextButton", ScrollContainer)
+LennonBtn.Position = UDim2.new(0, 5, 0, 47)
+LennonBtn.Size = UDim2.new(0, 260, 0, 40)
 LennonBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 70)
 LennonBtn.BackgroundTransparency = 0.3
 LennonBtn.BorderSizePixel = 0
@@ -136,9 +145,9 @@ LennonBtn.TextSize = 13
 Instance.new("UICorner", LennonBtn).CornerRadius = UDim.new(0, 6)
 
 -- 3. Botón Miranda
-local MirandaBtn = Instance.new("TextButton", MainFrame)
-MirandaBtn.Position = UDim2.new(0, 10, 0, 144)
-MirandaBtn.Size = UDim2.new(0, 270, 0, 40)
+local MirandaBtn = Instance.new("TextButton", ScrollContainer)
+MirandaBtn.Position = UDim2.new(0, 5, 0, 94)
+MirandaBtn.Size = UDim2.new(0, 260, 0, 40)
 MirandaBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 MirandaBtn.BackgroundTransparency = 0.3
 MirandaBtn.BorderSizePixel = 0
@@ -149,9 +158,9 @@ MirandaBtn.TextSize = 13
 Instance.new("UICorner", MirandaBtn).CornerRadius = UDim.new(0, 6)
 
 -- 4. Botón Chilli Hub
-local ChilliBtn = Instance.new("TextButton", MainFrame)
-ChilliBtn.Position = UDim2.new(0, 10, 0, 191)
-ChilliBtn.Size = UDim2.new(0, 270, 0, 40)
+local ChilliBtn = Instance.new("TextButton", ScrollContainer)
+ChilliBtn.Position = UDim2.new(0, 5, 0, 141)
+ChilliBtn.Size = UDim2.new(0, 260, 0, 40)
 ChilliBtn.BackgroundColor3 = Color3.fromRGB(210, 100, 40)
 ChilliBtn.BackgroundTransparency = 0.3
 ChilliBtn.BorderSizePixel = 0
@@ -162,9 +171,9 @@ ChilliBtn.TextSize = 13
 Instance.new("UICorner", ChilliBtn).CornerRadius = UDim.new(0, 6)
 
 -- 5. Botón Executar Auto Grab
-local GrabBtn = Instance.new("TextButton", MainFrame)
-GrabBtn.Position = UDim2.new(0, 10, 0, 238)
-GrabBtn.Size = UDim2.new(0, 270, 0, 40)
+local GrabBtn = Instance.new("TextButton", ScrollContainer)
+GrabBtn.Position = UDim2.new(0, 5, 0, 188)
+GrabBtn.Size = UDim2.new(0, 260, 0, 40)
 GrabBtn.BackgroundColor3 = Color3.fromRGB(140, 60, 200)
 GrabBtn.BackgroundTransparency = 0.3
 GrabBtn.BorderSizePixel = 0
@@ -174,8 +183,47 @@ GrabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 GrabBtn.TextSize = 13
 Instance.new("UICorner", GrabBtn).CornerRadius = UDim.new(0, 6)
 
+-- 6. Botón Lennon Farm
+local LennonFarmBtn = Instance.new("TextButton", ScrollContainer)
+LennonFarmBtn.Position = UDim2.new(0, 5, 0, 235)
+LennonFarmBtn.Size = UDim2.new(0, 260, 0, 40)
+LennonFarmBtn.BackgroundColor3 = Color3.fromRGB(30, 150, 120)
+LennonFarmBtn.BackgroundTransparency = 0.3
+LennonFarmBtn.BorderSizePixel = 0
+LennonFarmBtn.Font = Enum.Font.GothamBold
+LennonFarmBtn.Text = "Cargar Lennon Farm"
+LennonFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LennonFarmBtn.TextSize = 13
+Instance.new("UICorner", LennonFarmBtn).CornerRadius = UDim.new(0, 6)
+
+-- 7. Botón Miranda Farm
+local MirandaFarmBtn = Instance.new("TextButton", ScrollContainer)
+MirandaFarmBtn.Position = UDim2.new(0, 5, 0, 282)
+MirandaFarmBtn.Size = UDim2.new(0, 260, 0, 40)
+MirandaFarmBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 100)
+MirandaFarmBtn.BackgroundTransparency = 0.3
+MirandaFarmBtn.BorderSizePixel = 0
+MirandaFarmBtn.Font = Enum.Font.GothamBold
+MirandaFarmBtn.Text = "Cargar Miranda Farm"
+MirandaFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MirandaFarmBtn.TextSize = 13
+Instance.new("UICorner", MirandaFarmBtn).CornerRadius = UDim.new(0, 6)
+
+-- 8. Botón Anti Hit
+local AntiHitBtn = Instance.new("TextButton", ScrollContainer)
+AntiHitBtn.Position = UDim2.new(0, 5, 0, 329)
+AntiHitBtn.Size = UDim2.new(0, 260, 0, 40)
+AntiHitBtn.BackgroundColor3 = Color3.fromRGB(200, 160, 30)
+AntiHitBtn.BackgroundTransparency = 0.3
+AntiHitBtn.BorderSizePixel = 0
+AntiHitBtn.Font = Enum.Font.GothamBold
+AntiHitBtn.Text = "Cargar Anti Hit"
+AntiHitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiHitBtn.TextSize = 13
+Instance.new("UICorner", AntiHitBtn).CornerRadius = UDim.new(0, 6)
+
 -- ==============================
--- LÓGICA DE EJECUCIÓN (LOADSTRINGS ACTUALIZADOS)
+-- LÓGICA DE EJECUCIÓN (LOADSTRINGS)
 -- ==============================
 
 ServerHopBtn.MouseButton1Click:Connect(function()
@@ -254,6 +302,54 @@ GrabBtn.MouseButton1Click:Connect(function()
         StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
     else
         StatusLabel.Text = "Error al cargar Auto Grab."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+    end
+end)
+
+LennonFarmBtn.MouseButton1Click:Connect(function()
+    ClickSound:Play()
+    StatusLabel.Text = "Ejecutando Lennon Farm..."
+    StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonfarm/main/farmv1.lua"))()
+    end)
+    if success then
+        StatusLabel.Text = "✓ Lennon Farm cargado exitosamente."
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+    else
+        StatusLabel.Text = "Error al cargar Lennon Farm."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+    end
+end)
+
+MirandaFarmBtn.MouseButton1Click:Connect(function()
+    ClickSound:Play()
+    StatusLabel.Text = "Ejecutando Miranda Farm..."
+    StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/main/mirandaafk.lua"))()
+    end)
+    if success then
+        StatusLabel.Text = "✓ Miranda Farm cargado exitosamente."
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+    else
+        StatusLabel.Text = "Error al cargar Miranda Farm."
+        StatusLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+    end
+end)
+
+AntiHitBtn.MouseButton1Click:Connect(function()
+    ClickSound:Play()
+    StatusLabel.Text = "Ejecutando Anti Hit..."
+    StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hfrefire07-ai/Steal-An-Egg/refs/heads/main/Anti-Hit-Op"))()
+    end)
+    if success then
+        StatusLabel.Text = "✓ Anti Hit cargado exitosamente."
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 220, 100)
+    else
+        StatusLabel.Text = "Error al cargar Anti Hit."
         StatusLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
     end
 end)

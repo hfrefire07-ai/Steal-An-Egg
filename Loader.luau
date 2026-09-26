@@ -105,7 +105,7 @@ StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 StatusLabel.TextSize = 12
 StatusLabel.Text = "Esperando selección..."
 
--- Contenedor con Scroll para albergar todos los botones sin cambiar el alto de la ventana
+-- Contenedor con Scroll para los botones
 local ScrollContainer = Instance.new("ScrollingFrame", MainFrame)
 ScrollContainer.Position = UDim2.new(0, 5, 0, 42)
 ScrollContainer.Size = UDim2.new(1, -10, 0, 240)
@@ -247,7 +247,7 @@ LennonBtn.MouseButton1Click:Connect(function()
     StatusLabel.Text = "Ejecutando Lennon..."
     StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
     local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonhubv3/main/stealanegg.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonhubv4/main/stealanegg"))()
     end)
     if success then
         StatusLabel.Text = "✓ Lennon cargado exitosamente."
@@ -263,7 +263,7 @@ MirandaBtn.MouseButton1Click:Connect(function()
     StatusLabel.Text = "Ejecutando Miranda..."
     StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
     local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/main/stealaeggs"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/main/stealeggies"))()
     end)
     if success then
         StatusLabel.Text = "✓ Miranda cargado exitosamente."
@@ -311,7 +311,7 @@ LennonFarmBtn.MouseButton1Click:Connect(function()
     StatusLabel.Text = "Ejecutando Lennon Farm..."
     StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
     local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonfarm/main/farmv1.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonfarmv2/main/stealanegg"))()
     end)
     if success then
         StatusLabel.Text = "✓ Lennon Farm cargado exitosamente."
@@ -327,7 +327,7 @@ MirandaFarmBtn.MouseButton1Click:Connect(function()
     StatusLabel.Text = "Ejecutando Miranda Farm..."
     StatusLabel.TextColor3 = Color3.fromRGB(120, 180, 255)
     local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/main/mirandaafk.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/refs/heads/main/afkk"))()
     end)
     if success then
         StatusLabel.Text = "✓ Miranda Farm cargado exitosamente."
